@@ -8,31 +8,35 @@
     <style>
         body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; display: flex; height: 100vh; background-color: #f4f7f6; }
         
-        /* Sidebar for Data Analytics */
-        #sidebar { width: 350px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; z-index: 1000; }
+        /* Sidebar Styles */
+        #sidebar { width: 380px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; z-index: 1000; }
         .sidebar-header { background: #003366; color: white; padding: 20px; text-align: center; }
         .sidebar-header h2 { margin: 0; font-size: 18px; }
         .sidebar-header p { margin: 5px 0 0 0; font-size: 12px; opacity: 0.8; }
         
         #cyclone-list { flex: 1; overflow-y: auto; padding: 15px; }
-        .cyclone-card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #003366; border-radius: 5px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        /* Clickable Card Hover Effect */
+        .cyclone-card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #003366; border-radius: 5px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.3s; }
+        .cyclone-card:hover { transform: scale(1.02); box-shadow: 0 5px 15px rgba(0,0,0,0.15); border-left-width: 8px; }
+        
         .cyclone-card h4 { margin: 0 0 10px 0; color: #333; }
         .cyclone-card p { margin: 5px 0; font-size: 13px; color: #555; }
         .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; color: white; }
         .badge.red { background: #e74c3c; }
         .badge.orange { background: #f39c12; }
         .badge.green { background: #2ecc71; }
+        .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 10px; background: #f9f9f9; padding: 8px; border-radius: 5px; }
 
-        /* Main Map Area */
         #map-container { flex: 1; position: relative; }
         #map { height: 100%; width: 100%; }
 
-        /* Professional Chatbot */
+        /* Chatbox */
         .chat-container { position: absolute; bottom: 30px; right: 30px; width: 340px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 1000; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e0e0e0; }
         .chat-header { background: #00509e; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .chat-box { height: 300px; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 12px; }
         .chat-input-area { display: flex; border-top: 1px solid #eee; background: white; padding: 10px; }
-        .chat-input-area input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none; font-family: 'Roboto'; }
+        .chat-input-area input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none; }
         .chat-input-area button { padding: 10px 15px; margin-left: 10px; background: #00509e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         
         .msg-ai { background: #e3f2fd; color: #003366; padding: 10px 15px; border-radius: 15px 15px 15px 0; align-self: flex-start; max-width: 80%; font-size: 13px; line-height: 1.5; }
@@ -41,32 +45,28 @@
 </head>
 <body>
     
-    <!-- Left Sidebar for Analytics -->
     <div id="sidebar">
         <div class="sidebar-header">
             <h2>Ministry of Earth Sciences</h2>
-            <p>AI Cyclone Prediction & Classification</p>
+            <p>AI Cyclone Radar (SIH 2024)</p>
         </div>
         <div id="cyclone-list">
-            <!-- Data yahan JavaScript se aayega -->
-            <p style="text-align: center; color: #888; font-size: 14px; margin-top: 20px;">Fetching live telemetry...</p>
+            <p style="text-align: center; color: #888; font-size: 14px; margin-top: 20px;">Fetching Live Satellite Telemetry...</p>
         </div>
     </div>
 
-    <!-- Map & Chatbot Area -->
     <div id="map-container">
         <div id="map"></div>
-
         <div class="chat-container">
             <div class="chat-header">
-                <span>AI Prediction Assistant</span>
+                <span>AI Assistant</span>
                 <span style="font-size: 10px; background: #003366; padding: 3px 6px; border-radius: 10px;">ONLINE</span>
             </div>
             <div id="chat-box" class="chat-box">
-                <div class="msg-ai"><b>System:</b> Satellite data synced. Ask me for risk assessments or trajectory ETA.</div>
+                <div class="msg-ai"><b>System:</b> Satellite synced. Aap kisi bhi list item par click karke uski location dekh sakte hain!</div>
             </div>
             <div class="chat-input-area">
-                <input type="text" id="chat-input" placeholder="Query e.g., 'Risk level?'" onkeypress="if(event.key === 'Enter') sendMessage()">
+                <input type="text" id="chat-input" placeholder="Ask AI..." onkeypress="if(event.key === 'Enter') sendMessage()">
                 <button onclick="sendMessage()">Send</button>
             </div>
         </div>
@@ -76,60 +76,64 @@
     <script>
         var map = L.map('map').setView([20.0, 80.0], 4);
         
-        // Professional Satellite Layer (Esri World Imagery)
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 18,
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri'
         }).addTo(map);
+
+        // Click karne par ud kar jane wala function
+        function flyToCyclone(lat, lon) {
+            map.flyTo([lat, lon], 6, {
+                animate: true,
+                duration: 1.5 // 1.5 second ki smooth animation
+            });
+        }
 
         fetch('/api/data')
             .then(response => response.json())
             .then(data => {
                 var listContainer = document.getElementById('cyclone-list');
-                listContainer.innerHTML = ''; // Clear loading text
+                listContainer.innerHTML = ''; 
 
                 L.geoJSON(data.data, {
                     onEachFeature: function (feature, layer) {
                         if (feature.properties && feature.properties.name) {
                             
-                            // 1. Sidebar mein Cyclone detail Add karna
                             var alertClass = feature.properties.alertlevel.toLowerCase();
                             var statusColor = alertClass === 'red' ? '#e74c3c' : (alertClass === 'orange' ? '#f39c12' : '#2ecc71');
                             
-                            // Extract coordinates safely
-                            var coords = "N/A";
-                            if (feature.geometry.type === "Point") {
-                                coords = feature.geometry.coordinates[1].toFixed(2) + "°N, " + feature.geometry.coordinates[0].toFixed(2) + "°E";
-                            } else if (feature.geometry.type === "Polygon") {
-                                coords = feature.geometry.coordinates[0][0][1].toFixed(2) + "°N, " + feature.geometry.coordinates[0][0][0].toFixed(2) + "°E";
-                            }
+                            var lat = feature.properties.ai_lat;
+                            var lon = feature.properties.ai_lon;
 
+                            // Naya HTML Jisme click function aur Wind/Pressure data hai
                             var card = `
-                                <div class="cyclone-card" style="border-left-color: ${statusColor}">
+                                <div class="cyclone-card" style="border-left-color: ${statusColor}" onclick="flyToCyclone(${lat}, ${lon})">
                                     <h4>${feature.properties.name}</h4>
                                     <p><b>Alert:</b> <span class="badge ${alertClass}">${feature.properties.alertlevel}</span></p>
-                                    <p><b>Coords:</b> ${coords}</p>
-                                    <p><b>Risk Score:</b> ${feature.properties.ai_risk_score || 'Calculating...'}</p>
+                                    
+                                    <div class="data-grid">
+                                        <p style="margin:0;">🌪️ <b>Wind:</b><br>${feature.properties.ai_wind}</p>
+                                        <p style="margin:0;">📉 <b>Pressure:</b><br>${feature.properties.ai_pressure}</p>
+                                    </div>
+                                    <p style="margin-top:8px; text-align:right; font-size:11px; color:#00509e;"><i>Click to locate ➔</i></p>
                                 </div>
                             `;
                             listContainer.innerHTML += card;
 
-                            // 2. Map Marker Data
+                            // Map Popup Update
                             layer.bindPopup(
-                                "<div style='font-family: Roboto;'>" +
-                                "<b>🌀 " + feature.properties.name + "</b><br><hr style='margin:5px 0;'>" +
-                                "Alert Level: <b>" + feature.properties.alertlevel + "</b><br>" +
+                                "<div style='font-family: Roboto; min-width: 150px;'>" +
+                                "<b>🌀 " + feature.properties.name + "</b><hr style='margin:5px 0;'>" +
+                                "Wind Speed: <b>" + feature.properties.ai_wind + "</b><br>" +
+                                "Air Pressure: <b>" + feature.properties.ai_pressure + "</b><br>" +
                                 "AI Risk Score: <b style='color:#e74c3c'>" + feature.properties.ai_risk_score + "</b><br>" +
                                 "ETA: <b>" + feature.properties.ai_eta + "</b>" +
                                 "</div>"
                             );
 
-                            // 3. Trajectory Line
                             if (feature.properties.ai_future_path) {
                                 L.polyline(feature.properties.ai_future_path, {
-                                    color: '#ff3b30', 
-                                    weight: 3, 
-                                    dashArray: '8, 8' 
+                                    color: '#ff3b30', weight: 3, dashArray: '8, 8' 
                                 }).addTo(map);
                             }
                         }
