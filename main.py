@@ -21,62 +21,77 @@ def show_map():
 def get_data():
     global cyclone_memory
     url = "https://www.gdacs.org/gdacsapi/api/events/geteventlist/MAP?eventtype=TC"
+    
     try:
         response = requests.get(url)
         data = response.json()
-        
-        if "message" not in data:
-            # 🚀 PHASE 4: AI PREDICTION ENGINE (SIMULATION) 🚀
-            for feature in data.get("features", []):
-                coords = feature.get("geometry", {}).get("coordinates", [])
-                
-                lon, lat = 0, 0
-                # Check if location is Point or Polygon
-                if feature["geometry"]["type"] == "Point":
-                    lon, lat = coords[0], coords[1]
-                elif feature["geometry"]["type"] == "Polygon":
-                    lon, lat = coords[0][0][0], coords[0][0][1]
+        features = data.get("features", [])
+    except Exception:
+        data = {"type": "FeatureCollection", "features": []}
+        features = []
 
-                # Predict Future Path (Moving North-West side automatically)
-                # Note: Mapbox/Leaflet uses [Lat, Lon]
-                future_path = [
-                    [lat, lon],                # Aaj ki location
-                    [lat + 1.2, lon - 1.5],    # Kal ki location
-                    [lat + 2.5, lon - 2.8],    # Parso ki location
-                    [lat + 4.0, lon - 4.2]     # 3 din baad ki location
-                ]
-                
-                # AI Data add karna
-                feature["properties"]["ai_future_path"] = future_path
-                feature["properties"]["ai_risk_score"] = f"{random.randint(75, 98)}%"
-                feature["properties"]["ai_eta"] = "48 Hours"
-            
-            cyclone_memory = data
-            
-        return {"status": "Success", "data": data}
-    except Exception as e:
-        return {"status": "Error", "message": str(e)}
+    # Dummy Cyclones (India ke paas)
+    dummy_cyclones = [
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [88.5, 15.2]},
+            "properties": {
+                "name": "Cyclone Vayu (Simulated)",
+                "alertlevel": "Red",
+                "severitydata": {"severitytext": "Severe Cyclonic Storm"}
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [69.2, 18.5]},
+            "properties": {
+                "name": "Cyclone Agni (Simulated)",
+                "alertlevel": "Orange",
+                "severitydata": {"severitytext": "Cyclonic Storm"}
+            }
+        }
+    ]
+    features.extend(dummy_cyclones)
+
+    # Naya Data Add karna (Wind, Pressure, Exact Location)
+    for feature in features:
+        coords = feature.get("geometry", {}).get("coordinates", [])
+        lon, lat = 0, 0
+        if feature["geometry"]["type"] == "Point":
+            lon, lat = coords[0], coords[1]
+        elif feature["geometry"]["type"] == "Polygon":
+            lon, lat = coords[0][0][0], coords[0][0][1]
+
+        future_path = [
+            [lat, lon], [lat + 1.5, lon - 1.0], [lat + 3.0, lon - 1.8], [lat + 4.5, lon - 2.5]
+        ]
+        
+        feature["properties"]["ai_lat"] = lat
+        feature["properties"]["ai_lon"] = lon
+        feature["properties"]["ai_future_path"] = future_path
+        feature["properties"]["ai_risk_score"] = f"{random.randint(85, 99)}%"
+        feature["properties"]["ai_eta"] = f"{random.randint(24, 48)} Hours"
+        
+        # New Tech Features: Wind & Pressure
+        feature["properties"]["ai_wind"] = f"{random.randint(90, 220)} km/h"
+        feature["properties"]["ai_pressure"] = f"{random.randint(940, 1005)} hPa"
+
+    data["features"] = features
+    cyclone_memory = data
+    return {"status": "Success", "data": data}
 
 @app.post("/api/chat")
 def chat_with_ai(msg: Message):
     user_text = msg.text.lower()
+    features = cyclone_memory.get("features", [])
     
     if "kitne" in user_text or "active" in user_text:
-        count = len(cyclone_memory.get("features", []))
-        return {"reply": f"Abhi current time mein {count} active cyclones hain. Map par check karein!"}
-        
-    # 🚀 JAB USER FUTURE YA NUKSAAN KE BARE MEIN PUCHE 🚀
-    elif "nuksan" in user_text or "risk" in user_text or "kaha" in user_text or "time" in user_text or "predict" in user_text:
-        features = cyclone_memory.get("features", [])
+        return {"reply": f"SYSTEM ALERT: Currently {len(features)} active storm signatures detected on radar."}
+    elif "nuksan" in user_text or "risk" in user_text or "kaha" in user_text:
         if len(features) > 0:
-            name = features[0]["properties"].get("name", "Unknown Cyclone")
-            risk = features[0]["properties"].get("ai_risk_score", "80%")
-            eta = features[0]["properties"].get("ai_eta", "48 Hours")
-            
-            reply = f"🚨 AI Prediction ke mutabiq: Sabse kareebi cyclone '{name}' hai. Iska Damage Risk Score <b>{risk}</b> hai! Yeh lagbhag <b>{eta}</b> baad zameen se takrayega. Maine map par iska rasta ek RED DOTTED LINE se bana diya hai!"
-        else:
-            reply = "Abhi koi cyclone nahi hai, toh risk 0% hai."
-        return {"reply": reply}
-        
+            name = features[-1]["properties"].get("name", "Unknown")
+            risk = features[-1]["properties"].get("ai_risk_score", "90%")
+            return {"reply": f"HIGH THREAT: '{name}' detected. Damage Risk: {risk}. Please check the map for red trajectory."}
+        return {"reply": "Radar clear. No active threats."}
     else:
-        return {"reply": "Aap mujhse puch sakte hain: 'Kitna nuksan karega?' ya 'Ye kaha tak aayega aur kitna time lagega?'"}
+        return {"reply": "AI Core Active. Ask me about threat levels or active cyclones."}
