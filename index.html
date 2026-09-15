@@ -2,61 +2,134 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Live Cyclone Tracker AI</title>
+    <title>MoES - AI Cyclone Prediction System</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
-        #map { height: 100vh; width: 100vw; }
-        .header { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 1000; background: white; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .chat-container { position: absolute; bottom: 20px; right: 20px; width: 320px; background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1000; display: flex; flex-direction: column; overflow: hidden; }
-        .chat-header { background: #000; color: white; padding: 12px; font-weight: bold; text-align: center; }
-        .chat-box { height: 300px; padding: 10px; overflow-y: auto; font-size: 14px; background: #f4f4f9; display: flex; flex-direction: column; gap: 8px; }
-        .chat-input-area { display: flex; border-top: 1px solid #ccc; }
-        .chat-input-area input { flex: 1; padding: 12px; border: none; outline: none; }
-        .chat-input-area button { padding: 12px 15px; background: #000; color: white; border: none; cursor: pointer; font-weight: bold; }
-        .msg-ai { background: #e0e7ff; padding: 8px; border-radius: 8px; align-self: flex-start; max-width: 80%; }
-        .msg-user { background: #d1fae5; padding: 8px; border-radius: 8px; align-self: flex-end; max-width: 80%; }
+        body { margin: 0; padding: 0; font-family: 'Roboto', sans-serif; display: flex; height: 100vh; background-color: #f4f7f6; }
+        
+        /* Sidebar for Data Analytics */
+        #sidebar { width: 350px; background: white; box-shadow: 2px 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; z-index: 1000; }
+        .sidebar-header { background: #003366; color: white; padding: 20px; text-align: center; }
+        .sidebar-header h2 { margin: 0; font-size: 18px; }
+        .sidebar-header p { margin: 5px 0 0 0; font-size: 12px; opacity: 0.8; }
+        
+        #cyclone-list { flex: 1; overflow-y: auto; padding: 15px; }
+        .cyclone-card { background: #fff; border: 1px solid #e0e0e0; border-left: 5px solid #003366; border-radius: 5px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .cyclone-card h4 { margin: 0 0 10px 0; color: #333; }
+        .cyclone-card p { margin: 5px 0; font-size: 13px; color: #555; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; color: white; }
+        .badge.red { background: #e74c3c; }
+        .badge.orange { background: #f39c12; }
+        .badge.green { background: #2ecc71; }
+
+        /* Main Map Area */
+        #map-container { flex: 1; position: relative; }
+        #map { height: 100%; width: 100%; }
+
+        /* Professional Chatbot */
+        .chat-container { position: absolute; bottom: 30px; right: 30px; width: 340px; background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 1000; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #e0e0e0; }
+        .chat-header { background: #00509e; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .chat-box { height: 300px; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 12px; }
+        .chat-input-area { display: flex; border-top: 1px solid #eee; background: white; padding: 10px; }
+        .chat-input-area input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; outline: none; font-family: 'Roboto'; }
+        .chat-input-area button { padding: 10px 15px; margin-left: 10px; background: #00509e; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        
+        .msg-ai { background: #e3f2fd; color: #003366; padding: 10px 15px; border-radius: 15px 15px 15px 0; align-self: flex-start; max-width: 80%; font-size: 13px; line-height: 1.5; }
+        .msg-user { background: #00509e; color: white; padding: 10px 15px; border-radius: 15px 15px 0 15px; align-self: flex-end; max-width: 80%; font-size: 13px; }
     </style>
 </head>
 <body>
-    <div class="header"><h3>🌪️ AI Cyclone Tracker (SIH 2024)</h3></div>
-    <div id="map"></div>
-
-    <div class="chat-container">
-        <div class="chat-header">🤖 AI Assistant</div>
-        <div id="chat-box" class="chat-box">
-            <div class="msg-ai"><b>AI:</b> Hello! Puchiye: 'Ye kitna nuksan karega aur kaha tak aayega?'</div>
+    
+    <!-- Left Sidebar for Analytics -->
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <h2>Ministry of Earth Sciences</h2>
+            <p>AI Cyclone Prediction & Classification</p>
         </div>
-        <div class="chat-input-area">
-            <input type="text" id="chat-input" placeholder="Type message..." onkeypress="if(event.key === 'Enter') sendMessage()">
-            <button onclick="sendMessage()">Send</button>
+        <div id="cyclone-list">
+            <!-- Data yahan JavaScript se aayega -->
+            <p style="text-align: center; color: #888; font-size: 14px; margin-top: 20px;">Fetching live telemetry...</p>
+        </div>
+    </div>
+
+    <!-- Map & Chatbot Area -->
+    <div id="map-container">
+        <div id="map"></div>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <span>AI Prediction Assistant</span>
+                <span style="font-size: 10px; background: #003366; padding: 3px 6px; border-radius: 10px;">ONLINE</span>
+            </div>
+            <div id="chat-box" class="chat-box">
+                <div class="msg-ai"><b>System:</b> Satellite data synced. Ask me for risk assessments or trajectory ETA.</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="Query e.g., 'Risk level?'" onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()">Send</button>
+            </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         var map = L.map('map').setView([20.0, 80.0], 4);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+        
+        // Professional Satellite Layer (Esri World Imagery)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 18,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+        }).addTo(map);
 
         fetch('/api/data')
             .then(response => response.json())
             .then(data => {
+                var listContainer = document.getElementById('cyclone-list');
+                listContainer.innerHTML = ''; // Clear loading text
+
                 L.geoJSON(data.data, {
                     onEachFeature: function (feature, layer) {
                         if (feature.properties && feature.properties.name) {
-                            // 1. Map Marker Popup update kiya hai
+                            
+                            // 1. Sidebar mein Cyclone detail Add karna
+                            var alertClass = feature.properties.alertlevel.toLowerCase();
+                            var statusColor = alertClass === 'red' ? '#e74c3c' : (alertClass === 'orange' ? '#f39c12' : '#2ecc71');
+                            
+                            // Extract coordinates safely
+                            var coords = "N/A";
+                            if (feature.geometry.type === "Point") {
+                                coords = feature.geometry.coordinates[1].toFixed(2) + "°N, " + feature.geometry.coordinates[0].toFixed(2) + "°E";
+                            } else if (feature.geometry.type === "Polygon") {
+                                coords = feature.geometry.coordinates[0][0][1].toFixed(2) + "°N, " + feature.geometry.coordinates[0][0][0].toFixed(2) + "°E";
+                            }
+
+                            var card = `
+                                <div class="cyclone-card" style="border-left-color: ${statusColor}">
+                                    <h4>${feature.properties.name}</h4>
+                                    <p><b>Alert:</b> <span class="badge ${alertClass}">${feature.properties.alertlevel}</span></p>
+                                    <p><b>Coords:</b> ${coords}</p>
+                                    <p><b>Risk Score:</b> ${feature.properties.ai_risk_score || 'Calculating...'}</p>
+                                </div>
+                            `;
+                            listContainer.innerHTML += card;
+
+                            // 2. Map Marker Data
                             layer.bindPopup(
-                                "<b>🌀 " + feature.properties.name + "</b><br>" +
-                                "🚨 AI Risk Score: <b style='color:red'>" + feature.properties.ai_risk_score + "</b><br>" +
-                                "⏳ ETA: <b>" + feature.properties.ai_eta + "</b>"
+                                "<div style='font-family: Roboto;'>" +
+                                "<b>🌀 " + feature.properties.name + "</b><br><hr style='margin:5px 0;'>" +
+                                "Alert Level: <b>" + feature.properties.alertlevel + "</b><br>" +
+                                "AI Risk Score: <b style='color:#e74c3c'>" + feature.properties.ai_risk_score + "</b><br>" +
+                                "ETA: <b>" + feature.properties.ai_eta + "</b>" +
+                                "</div>"
                             );
 
-                            // 2. Future path ke liye Lal Rang ki dotted line banana
+                            // 3. Trajectory Line
                             if (feature.properties.ai_future_path) {
                                 L.polyline(feature.properties.ai_future_path, {
-                                    color: 'red',
-                                    weight: 4,
-                                    dashArray: '10, 10' // Line ko dotted banata hai
+                                    color: '#ff3b30', 
+                                    weight: 3, 
+                                    dashArray: '8, 8' 
                                 }).addTo(map);
                             }
                         }
@@ -70,7 +143,7 @@
             if (!message) return;
             
             var chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML += '<div class="msg-user"><b>You:</b> ' + message + '</div>';
+            chatBox.innerHTML += '<div class="msg-user">' + message + '</div>';
             input.value = '';
             chatBox.scrollTop = chatBox.scrollHeight;
             
